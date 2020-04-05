@@ -39,7 +39,7 @@ func SaveMessage(m *Message) {
 }
 
 // GetLast100Messages gets last 10 messages for a chatroom
-func GetLast100Messages(chatroom string) []Message {
+func GetLast100Messages(chatroom *string) []Message {
 	var db, err = newDatabase()
 	if err != nil {
 		return nil
@@ -49,7 +49,7 @@ func GetLast100Messages(chatroom string) []Message {
 	}()
 
 	var msgs []Message
-	db.Raw("SELECT * FROM (SELECT * FROM messages WHERE chatroom = ? ORDER BY timestamp DESC LIMIT 100) AS sq ORDER BY sq.timestamp ASC;", chatroom).Scan(&msgs)
+	db.Raw("SELECT * FROM (SELECT * FROM messages WHERE chatroom = ? ORDER BY timestamp DESC LIMIT 100) AS sq ORDER BY sq.timestamp ASC;", *chatroom).Scan(&msgs)
 	return msgs
 }
 
