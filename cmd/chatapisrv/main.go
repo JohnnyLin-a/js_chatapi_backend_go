@@ -73,7 +73,7 @@ func startCLI(enabled *bool) {
 
 			input, _ = reader.ReadString('\n')
 
-			input = strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(input), "\n"), "\r")
+			input = strings.TrimSuffix(strings.TrimSuffix(input, "\n"), "\r")
 
 			switch input {
 			case "msg":
@@ -89,7 +89,6 @@ func startCLI(enabled *bool) {
 		switch {
 		}
 	}
-
 }
 
 func loadEnvVars() {
