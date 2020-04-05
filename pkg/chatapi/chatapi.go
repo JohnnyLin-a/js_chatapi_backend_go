@@ -15,8 +15,17 @@ type ChatAPI struct {
 
 // Message is the data structure for incoming messages to the API
 type Message struct {
-	sender  *Client
-	message []byte
+	sender      *Client
+	jsonmessage []byte
+}
+
+// JSONMessage is the data structure for marshalling into the main Message struct
+type JSONMessage struct {
+	Type      string
+	Sender    string
+	Message   string
+	Timestamp string
+	Chatroom  string
 }
 
 // Response is the data structure for server responses to the client
@@ -58,9 +67,9 @@ func (cAPI *ChatAPI) Run() {
 
 func (cAPI *ChatAPI) processMessage(cMessage Message) {
 	var jsonData map[string]interface{}
-	if err := json.Unmarshal(cMessage.message, &jsonData); err != nil {
+	if err := json.Unmarshal(cMessage.jsonmessage, &jsonData); err != nil {
 		log.Println("UNMARSHAL ERROR ", err)
-		log.Println("for json: ", cMessage.message)
+		log.Println("for json: ", cMessage.jsonmessage)
 		return
 	}
 
@@ -76,9 +85,9 @@ func (cAPI *ChatAPI) processMessage(cMessage Message) {
 }
 
 func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
-	log.Println("Process SYSCOMMAND", string(cMessage.message))
+	log.Println("Process SYSCOMMAND", string(cMessage.jsonmessage))
 
-	jsonData, err := parseJSON(cMessage.message)
+	jsonData, err := parseJSON(cMessage.jsonmessage)
 	if err != nil {
 		return
 	}
@@ -101,16 +110,16 @@ func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
 }
 
 func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
-	var parsedMessage, err = parseJSON(cMessage.message)
+	var parsedMessage, err = parseJSON(cMessage.jsonmessage)
 	if err != nil {
-		log.Fatalln("BROADCAST: Cannot parse " + string(cMessage.message))
+		log.Fatalln("BROADCAST: Cannot parse " + string(cMessage.jsonmessage))
 		return
 	}
 	log.Println("#general " + parsedMessage["Sender"].(string) + ": " + parsedMessage["Message"].(string))
-	saveMessage(cMessage.message)
+	saveMessage(cMessage.jsonmessage)
 	for client := range cAPI.clients {
 		select {
-		case client.send <- cMessage.message:
+		case client.send <- cMessage.jsonmessage:
 		default:
 			uname := client.displayName
 			close(client.send)
@@ -129,4 +138,20 @@ func parseJSON(message []byte) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return jsonData, nil
+}
+
+func (cAPI *ChatAPI) handleOnConnect(c *Client) {
+	var chatroom string = "#general"
+	//get last 100 msgs
+	jsonMessages := getlast100Messages(&chatroom)
+	jsonData, err := json.Marshal(*jsonMessages)
+	if err != nil {
+		log.Println("handleOnConnect: Unable to Marshal jsonMessages")
+		cAPI.unregister <- c
+		c.conn.Close()
+	}
+	c.send <- jsonData
+
+	// broadcast new client connection
+	cAPI.broadcastMessage(&Message{c, []byte(`{"Type":"MESSAGE","Message":"` + c.displayName + ` connected to #general.","Sender":"SYSTEM"}`)})
 }

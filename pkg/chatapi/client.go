@@ -73,7 +73,7 @@ func (c *Client) startWebsocketReader() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		// message = append([]byte(c.displayName+": "), message...)
 
-		c.cAPI.messageProcessor <- Message{sender: c, message: message}
+		c.cAPI.messageProcessor <- Message{sender: c, jsonmessage: message}
 	}
 }
 
@@ -138,5 +138,5 @@ func HandleWebSocket(cAPI *ChatAPI, w http.ResponseWriter, r *http.Request) {
 	go client.startWebsocketReader()
 	go client.startWebsocketWriter()
 	// send to #general
-	client.cAPI.broadcastMessage(&Message{client, []byte(`{"Type":"MESSAGE","Message":"` + client.displayName + ` connected to #general.","Sender":"SYSTEM"}`)})
+	go cAPI.handleOnConnect(client)
 }
