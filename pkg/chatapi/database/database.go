@@ -32,8 +32,10 @@ func SaveMessage(m *Message) {
 	if err != nil {
 		return
 	}
+	defer func() {
+		db.Close()
+	}()
 	db.Create(m)
-	db.Close()
 }
 
 // GetLast10Messages gets last 10 messages for a chatroom
@@ -42,6 +44,9 @@ func GetLast10Messages(chatroom string) []Message {
 	if err != nil {
 		return nil
 	}
+	defer func() {
+		db.Close()
+	}()
 
 	var msgs []Message
 	db.Order("timestamp desc").Limit(10).Model(&Message{}).Where("chatroom = ?", chatroom).Find(&msgs)
@@ -49,7 +54,6 @@ func GetLast10Messages(chatroom string) []Message {
 	for _, msg := range msgs {
 		log.Println(msg)
 	}
-	db.Close()
 	return msgs
 }
 
@@ -59,7 +63,11 @@ func Migrate() {
 	if err != nil {
 		return
 	}
+	defer func() {
+		db.Close()
+	}()
+
+	// Only migrate Message Modal for now
 	log.Println("AutoMigrating...")
 	db.AutoMigrate(&Message{})
-	db.Close()
 }
