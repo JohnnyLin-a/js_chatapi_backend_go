@@ -1,20 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	_ "net/http/pprof"
+	"strings"
 
 	"../../pkg/chatapi"
 	"github.com/joho/godotenv"
 )
 
 var (
-	enableWebClient bool   = false
-	host            string = "localhost:8080"
+	enableWebClient bool             = false
+	host            string           = "localhost:8080"
+	cAPI            *chatapi.ChatAPI = nil
 )
 
 func main() {
@@ -26,7 +28,7 @@ func main() {
 
 	fmt.Println("Starting server at", host, "...")
 
-	cAPI := chatapi.NewChatAPI()
+	cAPI = chatapi.NewChatAPI()
 	go cAPI.Run()
 
 	http.HandleFunc("/", handleRootURL)
@@ -45,7 +47,9 @@ func main() {
 
 	fmt.Println("Server started.")
 
-	startCLI()
+	b, _ := strconv.ParseBool(os.Getenv("ENABLE_CLI"))
+	log.Println("ENABLE_CLI", b)
+	startCLI(&b)
 }
 
 func handleRootURL(writer http.ResponseWriter, request *http.Request) {
@@ -60,9 +64,32 @@ func handleRootURL(writer http.ResponseWriter, request *http.Request) {
 	http.ServeFile(writer, request, "static/home.html")
 }
 
-func startCLI() {
-	// to implement
-	select {}
+func startCLI(enabled *bool) {
+	var input string
+	if *enabled {
+		reader := bufio.NewReader(os.Stdin)
+		for *enabled {
+			fmt.Print("ChatAPI > ")
+
+			input, _ = reader.ReadString('\n')
+
+			input = strings.TrimSuffix(strings.TrimSuffix(strings.ToLower(input), "\n"), "\r")
+
+			switch input {
+			case "msg":
+				fmt.Println("test success")
+			case "exit", "quit":
+				*enabled = false
+			default:
+				fmt.Println("Command mismatch")
+			}
+
+		}
+	} else {
+		switch {
+		}
+	}
+
 }
 
 func loadEnvVars() {
