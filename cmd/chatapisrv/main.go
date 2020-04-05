@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	_ "net/http/pprof"
 
 	"../../pkg/chatapi"
 	"github.com/joho/godotenv"
@@ -67,7 +68,7 @@ func startCLI() {
 func loadEnvVars() {
 	var v, err = strconv.ParseBool(os.Getenv("ENABLE_WEB_CLIENT"))
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("ENABLE_WEB_CLIENT parse failed")
 	}
 	enableWebClient = v
 	host = os.Getenv("HOST")

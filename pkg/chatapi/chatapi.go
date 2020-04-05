@@ -107,6 +107,7 @@ func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 		return
 	}
 	log.Println("#general " + parsedMessage["Sender"].(string) + ": " + parsedMessage["Message"].(string))
+	saveMessage(cMessage.message)
 	for client := range cAPI.clients {
 		select {
 		case client.send <- cMessage.message:
