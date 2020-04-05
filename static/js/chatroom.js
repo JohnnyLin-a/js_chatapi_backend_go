@@ -41,7 +41,7 @@ function sendMessage() {
   const jsonStr = JSON.stringify({
     Type: "MESSAGE",
     Message: g.message.value,
-    Sender: g.displayName
+    Sender: g.displayName,
   });
   console.log("Sending ", jsonStr);
   g.conn.send(jsonStr);
@@ -53,19 +53,19 @@ function sendMessage() {
 function makeWebSocket() {
   g.conn = new WebSocket("ws://" + document.location.host + "/ws");
 
-  g.conn.onclose = function(evt) {
+  g.conn.onclose = function (evt) {
     pushChatLog({ Sender: "SYSTEM", Message: "Connection closed." });
     g.message.disabled = true;
     document.getElementById("submitBtn").disabled = true;
   };
-  g.conn.onmessage = function(evt) {
+  g.conn.onmessage = function (evt) {
     var messages = evt.data.split("\n");
     for (var i = 0; i < messages.length; i++) {
       console.log("Received message " + messages[i], JSON.parse(messages[i]));
       handleIncomingMessage(messages[i]);
     }
   };
-  g.conn.onopen = evt => {
+  g.conn.onopen = (evt) => {
     console.log("Connected to server.");
 
     console.log(
@@ -75,27 +75,35 @@ function makeWebSocket() {
       JSON.stringify({
         Type: "_SYSCOMMAND",
         Message: "!get_display_name",
-        Sender: g.displayName
+        Sender: g.displayName,
       })
     );
   };
 }
 
-const handleIncomingMessage = message => {
-  const jsonObj = JSON.parse(message);
-  switch (jsonObj.Type) {
-    case "_SYSCOMMAND":
-      handleSysCommand(jsonObj);
-      break;
-    case "MESSAGE":
-      pushChatLog(jsonObj);
-      break;
-    default:
-      console.log("Incoming message type mismatch");
+const handleIncomingMessage = (message) => {
+  let jsonObj = JSON.parse(message);
+  if (!Array.isArray(jsonObj)) {
+    jsonObj = [jsonObj];
   }
+
+  console.log(jsonObj);
+
+  jsonObj.forEach((json) => {
+    switch (json.Type) {
+      case "_SYSCOMMAND":
+        handleSysCommand(json);
+        break;
+      case "MESSAGE":
+        pushChatLog(json);
+        break;
+      default:
+        console.log("Incoming message type mismatch");
+    }
+  });
 };
 
-const handleSysCommand = jsonObj => {
+const handleSysCommand = (jsonObj) => {
   switch (jsonObj.Message) {
     case "!get_display_name":
       g.displayName = jsonObj.Response;
