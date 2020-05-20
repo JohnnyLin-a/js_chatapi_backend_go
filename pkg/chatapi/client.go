@@ -16,10 +16,11 @@ const (
 	pingInterval = (readTimeout * 9) / 10
 
 	// Maximum message size allowed.
-	// 15.0kb in actual size. Line messages can have up to 2000 characters.
+	// 15.0kb in actual size. Line messages can have up to 2000 characters. (times 100)
 	// Each character can be a maximum of 6 bytes in size.
 	// The rest of the headroom is for json encoding.
-	maxMessageSize = 15360
+	// One server reply can be max 100 messages at a time
+	maxMessageSize = 1536000
 )
 
 var (
@@ -124,6 +125,10 @@ func (c *Client) startWebsocketWriter() {
 
 // HandleWebSocket handles client websocket
 func HandleWebSocket(cAPI *ChatAPI, w http.ResponseWriter, r *http.Request) {
+	log.Println("Origin", r.Header["Origin"][0])
+	if r.Header["Origin"][0] != "http://localhost:8080" {
+		// TODO: Check for cross-origin resource sharing
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
