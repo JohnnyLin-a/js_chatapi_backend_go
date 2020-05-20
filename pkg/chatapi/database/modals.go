@@ -9,18 +9,18 @@ import (
 
 // Chatroom struct for db
 type Chatroom struct {
-	Name            string
-	Mood            string
-	LastMessage     string
-	IsDirectMessage bool
+	Name            string `json:"name"`
+	Mood            string `json:"mood"`
+	LastMessage     string `json:"lastMessage"`
+	IsDirectMessage bool   `json:"isDirectMessage"`
 }
 
 // Message struct for db
 type Message struct {
-	ID        string `gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	Chatroom  string
-	Timestamp time.Time
-	Sender    string
-	Type      string
-	Message   string
+	ID        string    `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"-"`
+	Chatroom  string    `json:"chatroom"`
+	Timestamp time.Time `json:"timestamp"`
+	Sender    string    `json:"sender"`
+	Type      string    `json:"type"`
+	Message   string    `json:"message"`
 }
