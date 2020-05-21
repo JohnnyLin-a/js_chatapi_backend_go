@@ -15,12 +15,9 @@ const (
 	readTimeout  = 60 * time.Second
 	pingInterval = (readTimeout * 9) / 10
 
-	// Maximum message size allowed.
-	// 15.0kb in actual size. Line messages can have up to 2000 characters. (times 100)
-	// Each character can be a maximum of 6 bytes in size.
-	// The rest of the headroom is for json encoding.
-	// One server reply can be max 100 messages at a time
-	maxMessageSize = 1536000
+	// Maximum message length allowed.
+	// length 2000 + 1000 JSON headroom
+	maxMessageSize = 3000
 )
 
 var (
