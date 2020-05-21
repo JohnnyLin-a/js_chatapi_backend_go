@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"./database"
+	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database"
 )
 
 func saveMessage(message []byte) {

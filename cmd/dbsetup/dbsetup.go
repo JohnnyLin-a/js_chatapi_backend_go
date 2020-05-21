@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"../../pkg/chatapi/database"
+	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database"
 	"github.com/joho/godotenv"
 )
 
@@ -35,7 +35,8 @@ func startCLI() {
 		case "migrate":
 			database.Migrate()
 		case "getlast100messages":
-			messages := database.GetLast100Messages("#general")
+			channel := "#general"
+			messages := database.GetLast100Messages(&channel)
 			for i, message := range messages {
 				log.Println(i, message.Timestamp, message.Message)
 			}

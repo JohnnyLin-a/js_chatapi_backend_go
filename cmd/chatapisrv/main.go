@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"../../pkg/chatapi"
+	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi"
 	"github.com/joho/godotenv"
 )
 
