@@ -13,11 +13,11 @@ import (
 )
 
 func newDatabase() (*gorm.DB, error) {
-	var host = os.Getenv("PSQL_HOST")
-	var port = os.Getenv("PSQL_PORT")
-	var user = os.Getenv("PSQL_USER")
-	var dbname = os.Getenv("PSQL_DBNAME")
-	var password = os.Getenv("PSQL_PASSWORD")
+	var host = os.Getenv("POSTGRES_HOST")
+	var port = os.Getenv("POSTGRES_PORT")
+	var user = os.Getenv("POSTGRES_USER")
+	var dbname = os.Getenv("POSTGRES_DB")
+	var password = os.Getenv("POSTGRES_PASSWORD")
 	db, err := gorm.Open("postgres", "sslmode=disable host="+host+" port="+port+" user="+user+" dbname="+dbname+" password="+password)
 	if err != nil {
 		log.Println("database.newDatabase: Database connection failed. ", err)
