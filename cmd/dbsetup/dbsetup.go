@@ -41,7 +41,7 @@ func startCLI() {
 				log.Println(i, message.Timestamp, message.Message)
 			}
 		case "exit", "quit":
-			break
+			os.Exit(0)
 		default:
 			fmt.Println("Command mismatch")
 		}
