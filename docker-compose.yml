@@ -1,0 +1,41 @@
+version: '3'
+services:
+
+  im_app:
+    build:
+      context: .
+      dockerfile: ./im_app.Dockerfile
+    container_name: im_app
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - im-network
+
+  im_db:
+    image: postgres:12-alpine
+    container_name: im_db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: "js_chatapi_overseer"
+      POSTGRES_PASSWORD: "StrongPassword12321$$%^"
+      POSTGRES_DB: "js_chatapi_db"
+    volumes:
+      - im_db_data:/var/lib/postgresql/data
+    networks:
+      - im-network
+
+#Docker Networks
+networks:
+  im-network:
+    driver: bridge
+
+volumes:
+  im_db_data:
+    driver: local
+    
