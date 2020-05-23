@@ -1,3 +1,5 @@
 .env
 *.exe
 vendor/*
+acme-challenge/*
+certs/*
