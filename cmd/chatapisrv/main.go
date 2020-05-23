@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,32 +16,65 @@ import (
 
 var (
 	enableWebClient bool             = false
-	host            string           = "localhost:8080"
+	httpHost        string           = ":80"
+	httpsHost       string           = ":443"
 	cAPI            *chatapi.ChatAPI = nil
+	sslCert         string           = "fullchain.crt"
+	sslKey          string           = ""
 )
 
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
+		os.Exit(1)
 	}
 	loadEnvVars()
 
-	fmt.Println("Starting server at", host, "...")
+	fmt.Println("Starting server at", httpHost, " and ", httpsHost)
 
 	cAPI = chatapi.NewChatAPI()
 	go cAPI.Run()
 
-	http.HandleFunc("/", handleRootURL)
-	if enableWebClient {
-		http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	// http to https redirector
+	http.Handle("/.well-known/acme-challenge/", http.StripPrefix("/.well-known/acme-challenge/", http.FileServer(http.Dir("/.well-known/acme-challenge/"))))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://"+r.Host, http.StatusPermanentRedirect)
+	})
+	go http.ListenAndServe(httpHost, nil)
+
+	// Main app portion
+	mux := http.NewServeMux()
+
+	// mux config
+	cfg := &tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
 	}
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	srv := &http.Server{
+		Addr:         httpsHost,
+		Handler:      mux,
+		TLSConfig:    cfg,
+		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+	}
+
+	mux.HandleFunc("/", handleRootURL)
+	if enableWebClient {
+		mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	}
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatapi.HandleWebSocket(cAPI, w, r)
 	})
 
 	go func() {
-		if err := http.ListenAndServe(host, nil); err != nil {
+		if err := srv.ListenAndServeTLS(sslCert, sslKey); err != nil {
 			log.Fatal("ListenAndServe: ", err)
 		}
 	}()
@@ -95,8 +129,12 @@ func loadEnvVars() {
 	var v, err = strconv.ParseBool(os.Getenv("ENABLE_WEB_CLIENT"))
 	if err != nil {
 		log.Fatal("ENABLE_WEB_CLIENT parse failed")
+		os.Exit(1)
 	}
 	enableWebClient = v
-	host = os.Getenv("HOST")
+	httpHost = os.Getenv("HTTP_HOST")
+	httpsHost = os.Getenv("HTTPS_HOST")
+	sslCert = os.Getenv("SSL_CERT")
+	sslKey = os.Getenv("SSL_KEY")
 	log.Println("ENABLE_WEB_CLIENT", enableWebClient)
 }

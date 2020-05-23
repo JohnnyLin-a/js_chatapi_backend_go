@@ -51,7 +51,7 @@ function sendMessage() {
 }
 
 function makeWebSocket() {
-  g.conn = new WebSocket("ws://" + document.location.host + "/ws");
+  g.conn = new WebSocket("wss://" + document.location.host + "/ws");
 
   g.conn.onclose = function (evt) {
     pushChatLog({ Sender: "SYSTEM", Message: "Connection closed." });
