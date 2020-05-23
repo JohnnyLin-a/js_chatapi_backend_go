@@ -26,7 +26,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: "js_chatapi_overseer"
-      POSTGRES_PASSWORD: "StrongPassword12321$$%^"
+      POSTGRES_PASSWORD: "r!$$q%I8SUI7D"
       POSTGRES_DB: "js_chatapi_db"
     volumes:
       - im_db_data:/var/lib/postgresql/data
