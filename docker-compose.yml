@@ -30,6 +30,19 @@ services:
       - im_db_data:/var/lib/postgresql/data
     networks:
       - im-network
+  # pgadmin:
+  #   container_name: pgadmin
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: SOME_EMAIL
+  #     PGADMIN_DEFAULT_PASSWORD: SOME_PASSWORD
+  #   volumes:
+  #       - pgadmin:/root/.pgadmin
+  #   ports:
+  #     - "5050:80"
+  #   networks:
+  #     - im-network
+  #   restart: unless-stopped
 
 #Docker Networks
 networks:
@@ -39,4 +52,6 @@ networks:
 volumes:
   im_db_data:
     driver: local
+  # pgadmin:
+  #   driver: local
     
