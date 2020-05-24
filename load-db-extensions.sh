@@ -1,5 +1,4 @@
 echo "Executing load-db-extensions"
-psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-\\q
+psql -U $POSTGRES_USER -d $POSTGRES_DB -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+psql -U $POSTGRES_USER -d $POSTGRES_DB -c "ALTER USER $POSTGRES_USER WITH PASSWORD '$POSTGRES_PASSWORD';"
 echo "OK"
