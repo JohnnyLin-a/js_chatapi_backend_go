@@ -122,10 +122,6 @@ func (c *Client) startWebsocketWriter() {
 
 // HandleWebSocket handles client websocket
 func HandleWebSocket(cAPI *ChatAPI, w http.ResponseWriter, r *http.Request) {
-	log.Println("Origin", r.Header["Origin"][0])
-	if r.Header["Origin"][0] != "http://localhost:8080" {
-		// TODO: Check for cross-origin resource sharing
-	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)

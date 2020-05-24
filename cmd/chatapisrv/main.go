@@ -18,6 +18,7 @@ var (
 	enableWebClient bool             = false
 	httpHost        string           = ":80"
 	httpsHost       string           = ":443"
+	dnsAddrOrigin	string			 = ""
 	cAPI            *chatapi.ChatAPI = nil
 	sslCert         string           = "fullchain.crt"
 	sslKey          string           = ""
@@ -70,7 +71,14 @@ func main() {
 		mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	}
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		chatapi.HandleWebSocket(cAPI, w, r)
+		// log.Println("Origin", r.Header["Origin"][0])
+		if r.Header["Origin"][0] != dnsAddrOrigin {
+			// TODO: Check for cross-origin resource sharing
+			log.Println("CSRF mismatch origin: " + r.Header["Origin"][0])
+			// return
+		} else {
+			chatapi.HandleWebSocket(cAPI, w, r)
+		}
 	})
 
 	go func() {
@@ -136,5 +144,6 @@ func loadEnvVars() {
 	httpsHost = os.Getenv("HTTPS_HOST")
 	sslCert = os.Getenv("SSL_CERT")
 	sslKey = os.Getenv("SSL_KEY")
+	dnsAddrOrigin = os.Getenv("DNS_ADDR_ORIGIN")
 	log.Println("ENABLE_WEB_CLIENT", enableWebClient)
 }
