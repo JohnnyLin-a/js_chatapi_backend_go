@@ -28,6 +28,7 @@ services:
       - postgres.env
     volumes:
       - im_db_data:/var/lib/postgresql/data
+      - ./scripts/im_app/:/scripts/
     networks:
       - im-network
   # pgadmin:
