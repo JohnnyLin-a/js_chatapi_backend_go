@@ -82,8 +82,12 @@ func main() {
 	})
 
 	go func() {
-		if err := srv.ListenAndServeTLS(sslCert, sslKey); err != nil {
-			log.Fatal("ListenAndServe: ", err)
+		if _, err := os.Stat(sslCert); err == nil {
+			if err := srv.ListenAndServeTLS(sslCert, sslKey); err != nil {
+				log.Fatal("ListenAndServe: ", err)
+			}
+		} else if os.IsNotExist(err){
+			log.Println("SSL cert not found. Will not listen on " + httpsHost)
 		}
 	}()
 
