@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"crypto/tls"
+	// "crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,7 +18,7 @@ var (
 	enableWebClient bool             = false
 	httpHost        string           = ":80"
 	httpsHost       string           = ":443"
-	dnsAddrOrigin	string			 = ""
+	dnsAddrOrigin   string           = ""
 	cAPI            *chatapi.ChatAPI = nil
 	sslCert         string           = "fullchain.crt"
 	sslKey          string           = ""
@@ -38,57 +38,57 @@ func main() {
 	go cAPI.Run()
 
 	// http to https redirector
-	http.Handle("/.well-known/acme-challenge/", http.StripPrefix("/.well-known/acme-challenge/", http.FileServer(http.Dir("/.well-known/acme-challenge/"))))
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "https://"+r.Host, http.StatusPermanentRedirect)
-	})
-	go http.ListenAndServe(httpHost, nil)
+	// http.Handle("/.well-known/acme-challenge/", http.StripPrefix("/.well-known/acme-challenge/", http.FileServer(http.Dir("/.well-known/acme-challenge/"))))
+	// http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// 	http.Redirect(w, r, "https://"+r.Host, http.StatusPermanentRedirect)
+	// })
+	// go http.ListenAndServe(httpHost, nil)
+	// now using nginx to do that
 
 	// Main app portion
-	mux := http.NewServeMux()
+	// mux := http.NewServeMux()
 
 	// mux config
-	cfg := &tls.Config{
-		MinVersion:               tls.VersionTLS12,
-		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		PreferServerCipherSuites: true,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		},
-	}
-	srv := &http.Server{
-		Addr:         httpsHost,
-		Handler:      mux,
-		TLSConfig:    cfg,
-		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
-	}
+	// cfg := &tls.Config{
+	// 	MinVersion:               tls.VersionTLS12,
+	// 	CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+	// 	PreferServerCipherSuites: true,
+	// 	CipherSuites: []uint16{
+	// 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	// 		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	// 		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	// 		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	// 	},
+	// }
+	// srv := &http.Server{
+	// 	Addr:         httpsHost,
+	// 	Handler:      mux,
+	// 	TLSConfig:    cfg,
+	// 	TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+	// }
 
-	mux.HandleFunc("/", handleRootURL)
+	http.HandleFunc("/", handleRootURL)
 	if enableWebClient {
-		mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+		http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	}
-	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		// log.Println("Origin", r.Header["Origin"][0])
+	http.Handle("/.well-known/acme-challenge/", http.StripPrefix("/.well-known/acme-challenge/", http.FileServer(http.Dir("/.well-known/acme-challenge/"))))
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("User connecting from " + GetIP(r))
 		if r.Header["Origin"][0] != dnsAddrOrigin {
-			// TODO: Check for cross-origin resource sharing
 			log.Println("CSRF mismatch origin: " + r.Header["Origin"][0])
-			// return
 		} else {
 			chatapi.HandleWebSocket(cAPI, w, r)
 		}
 	})
 
 	go func() {
-		if _, err := os.Stat(sslCert); err == nil {
-			if err := srv.ListenAndServeTLS(sslCert, sslKey); err != nil {
-				log.Fatal("ListenAndServe: ", err)
-			}
-		} else if os.IsNotExist(err){
-			log.Println("SSL cert not found. Will not listen on " + httpsHost)
+		// if _, err := os.Stat(sslCert); err == nil {
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Fatal("ListenAndServe: ", err)
 		}
+		// } else if os.IsNotExist(err) {
+		// log.Println("SSL cert not found. Will not listen on " + httpsHost)
+		// }
 	}()
 
 	fmt.Println("Server started.")
@@ -129,10 +129,9 @@ func startCLI(enabled *bool) {
 			default:
 				fmt.Println("Command mismatch")
 			}
-
 		}
 	} else {
-		switch {
+		for {
 		}
 	}
 }
@@ -150,4 +149,12 @@ func loadEnvVars() {
 	sslKey = os.Getenv("SSL_KEY")
 	dnsAddrOrigin = os.Getenv("DNS_ADDR_ORIGIN")
 	log.Println("ENABLE_WEB_CLIENT", enableWebClient)
+}
+
+func GetIP(r *http.Request) string {
+	forwarded := r.Header.Get("X-FORWARDED-FOR")
+	if forwarded != "" {
+		return forwarded
+	}
+	return r.RemoteAddr
 }

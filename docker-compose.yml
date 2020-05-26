@@ -8,12 +8,9 @@ services:
     container_name: im_app
     restart: unless-stopped
     tty: true
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
       - ./acme-challenge/:/.well-known/acme-challenge/
-      - ./certs/:/certs/
+    #   - ./certs/:/certs/
     networks:
       - im-network
 
@@ -31,6 +28,20 @@ services:
       - ./scripts/im_app/:/scripts/
     networks:
       - im-network
+
+  im_nginx:
+    image: nginx:alpine
+    container_name: im_nginx
+    ports: 
+      - "80:80"
+      - "443:443"
+    volumes:
+      # - ./acme-challenge/:/.well-known/acme-challenge/
+      - ./certs/:/certs/
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - im-network
+    restart: unless-stopped
   # pgadmin:
   #   container_name: pgadmin
   #   image: dpage/pgadmin4
