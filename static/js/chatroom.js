@@ -6,23 +6,23 @@ function pushChatLog(jsonMessage) {
   if (g.chatLog.scrollHeight - g.chatLog.scrollTop === g.chatLog.clientHeight) {
     needScroll = true;
   }
-  if (jsonMessage.Sender === g.displayName) {
+  if (jsonMessage.sender === g.displayName) {
     needScroll = true;
   }
 
   var item = document.createElement("div");
 
-  if (jsonMessage.Sender === "SYSTEM") {
+  if (jsonMessage.sender === "SYSTEM") {
     item.innerHTML =
       '<b><span style="color: red;">SYSTEM: </span>' +
-      jsonMessage.Message +
+      jsonMessage.message +
       "</b>";
   } else {
     item.innerHTML =
-      "<span><b>" + jsonMessage.Sender + ":</b> </span>" + jsonMessage.Message;
+      "<span><b>" + jsonMessage.sender + ":</b> </span>" + jsonMessage.message;
   }
 
-  if (jsonMessage.Sender) jsonMessage.message;
+  if (jsonMessage.sender) jsonMessage.message;
   g.chatLog.appendChild(item);
 
   if (needScroll) {
@@ -39,9 +39,9 @@ function sendMessage() {
   }
 
   const jsonStr = JSON.stringify({
-    Type: "MESSAGE",
-    Message: g.message.value,
-    Sender: g.displayName,
+    type: "MESSAGE",
+    message: g.message.value,
+    sender: g.displayName,
   });
   console.log("Sending ", jsonStr);
   g.conn.send(jsonStr);
@@ -54,7 +54,7 @@ function makeWebSocket() {
   g.conn = new WebSocket("wss://" + document.location.host + "/ws");
 
   g.conn.onclose = function (evt) {
-    pushChatLog({ Sender: "SYSTEM", Message: "Connection closed." });
+    pushChatLog({ sender: "SYSTEM", message: "Connection closed." });
     g.message.disabled = true;
     document.getElementById("submitBtn").disabled = true;
   };
@@ -69,13 +69,13 @@ function makeWebSocket() {
     console.log("Connected to server.");
 
     console.log(
-      'Sending { Type: "_SYSCOMMAND", Message: "!get_display_name" }'
+      'Sending { type: "_SYSCOMMAND", message: "!get_display_name" }'
     );
     g.conn.send(
       JSON.stringify({
-        Type: "_SYSCOMMAND",
-        Message: "!get_display_name",
-        Sender: g.displayName,
+        type: "_SYSCOMMAND",
+        message: "!get_display_name",
+        sender: g.displayName,
       })
     );
   };
@@ -90,7 +90,7 @@ const handleIncomingMessage = (message) => {
   console.log(jsonObj);
 
   jsonObj.forEach((json) => {
-    switch (json.Type) {
+    switch (json.type) {
       case "_SYSCOMMAND":
         handleSysCommand(json);
         break;
@@ -104,9 +104,9 @@ const handleIncomingMessage = (message) => {
 };
 
 const handleSysCommand = (jsonObj) => {
-  switch (jsonObj.Message) {
+  switch (jsonObj.message) {
     case "!get_display_name":
-      g.displayName = jsonObj.Response;
+      g.displayName = jsonObj.response;
       console.log("Display name set to " + g.displayName);
       break;
     default:

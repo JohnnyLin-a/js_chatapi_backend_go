@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database"
+	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database/models"
 	"github.com/joho/godotenv"
 )
 
@@ -36,7 +37,11 @@ func startCLI() {
 			database.Migrate()
 		case "getlast100messages":
 			channel := "#general"
-			messages := database.GetLast100Messages(&channel)
+			var db, db_err = database.NewDatabase()
+			if db_err != nil {
+				log.Fatalln("dbsetup.getlast100messages: Database connection failed.")
+			}
+			messages := models.GetLast100Messages(db, &channel)
 			for i, message := range messages {
 				log.Println(i, message.Timestamp, message.Message)
 			}

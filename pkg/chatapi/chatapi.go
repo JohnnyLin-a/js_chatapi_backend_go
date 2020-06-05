@@ -3,6 +3,9 @@ package chatapi
 import (
 	"encoding/json"
 	"log"
+
+	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database/models"
+	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database"
 )
 
 // ChatAPI manages each client and their actions
@@ -19,21 +22,13 @@ type Message struct {
 	jsonmessage []byte
 }
 
-// JSONMessage is the data structure for marshalling into the main Message struct
-type JSONMessage struct {
-	Type      string
-	Sender    string
-	Message   string
-	Timestamp string
-	Chatroom  string
-}
 
 // Response is the data structure for server responses to the client
 // Marshall this struct when sending data back to client.
 type Response struct {
-	Type     string
-	Message  string
-	Response string
+	Type     string	`json:"type"`
+	Message  string	`json:"message"`
+	Response string	`json:"response"`
 }
 
 // NewChatAPI creates a new app instance and returns its own pointer
@@ -57,7 +52,7 @@ func (cAPI *ChatAPI) Run() {
 				uname := client.displayName
 				close(client.send)
 				delete(cAPI.clients, client)
-				cAPI.broadcastMessage(&Message{client, []byte(`{"Type":"MESSAGE","Message":"` + uname + ` disconnected.","Sender":"SYSTEM"}`)})
+				cAPI.broadcastMessage(&Message{client, []byte(`{"type":"MESSAGE","message":"` + uname + ` disconnected.","sender":"SYSTEM"}`)})
 			}
 		case cMessage := <-cAPI.messageProcessor:
 			go cAPI.processMessage(cMessage)
@@ -73,13 +68,13 @@ func (cAPI *ChatAPI) processMessage(cMessage Message) {
 		return
 	}
 
-	switch jsonData["Type"] {
+	switch jsonData["type"] {
 	case "_SYSCOMMAND":
 		cAPI.processSysCommand(&cMessage)
 	case "MESSAGE":
 		cAPI.broadcastMessage(&cMessage)
 	default:
-		log.Println("Unable to process message of type", jsonData["Type"])
+		log.Println("Unable to process message of type", jsonData["type"])
 		return
 	}
 }
@@ -87,12 +82,12 @@ func (cAPI *ChatAPI) processMessage(cMessage Message) {
 func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
 	log.Println("Process SYSCOMMAND", string(cMessage.jsonmessage))
 
-	jsonData, err := parseJSON(cMessage.jsonmessage)
+	jsonData, err := parseGenericJSON(cMessage.jsonmessage)
 	if err != nil {
 		return
 	}
 
-	switch jsonData["Message"] {
+	switch jsonData["message"] {
 	case "!get_display_name":
 		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!get_display_name", Response: cMessage.sender.displayName}
 		var jsonResponse, err = json.Marshal(jsonResponseStruct)
@@ -110,13 +105,23 @@ func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
 }
 
 func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
-	var parsedMessage, err = parseJSON(cMessage.jsonmessage)
+	var message models.Message
+	var err = json.Unmarshal(cMessage.jsonmessage, &message)
 	if err != nil {
 		log.Fatalln("BROADCAST: Cannot parse " + string(cMessage.jsonmessage))
 		return
 	}
-	log.Println("#general " + parsedMessage["Sender"].(string) + ": " + parsedMessage["Message"].(string))
-	saveMessage(cMessage.jsonmessage)
+	log.Println("#general " + message.Sender + ": " + message.Message)
+
+	var db, dbErr = database.NewDatabase()
+	if dbErr != nil {
+		log.Fatalln("chatapi.broadcastMessage: Database connection failed.")
+		return
+	}
+	message.SaveMessage(db)
+	// db connection will be closed here
+	// saveMessage(cMessage.jsonmessage)
+
 	for client := range cAPI.clients {
 		select {
 		case client.send <- cMessage.jsonmessage:
@@ -124,13 +129,13 @@ func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 			uname := client.displayName
 			close(client.send)
 			delete(cAPI.clients, client)
-			cAPI.broadcastMessage(&Message{client, []byte(`{"type":"MESSAGE","message":"` + uname + ` disconnected.","Sender":"SYSTEM"}`)})
+			cAPI.broadcastMessage(&Message{client, []byte(`{"type":"MESSAGE","message":"` + uname + ` disconnected.","sender":"SYSTEM"}`)})
 
 		}
 	}
 }
 
-func parseJSON(message []byte) (map[string]interface{}, error) {
+func parseGenericJSON(message []byte) (map[string]interface{}, error) {
 	var jsonData map[string]interface{}
 	if err := json.Unmarshal(message, &jsonData); err != nil {
 		log.Println("UNMARSHAL ERROR ", err)
@@ -143,8 +148,15 @@ func parseJSON(message []byte) (map[string]interface{}, error) {
 func (cAPI *ChatAPI) handleOnConnect(c *Client) {
 	var chatroom string = "#general"
 	//get last 100 msgs
-	jsonMessages := getlast100Messages(&chatroom)
-	jsonData, err := json.Marshal(*jsonMessages)
+	var db, err = database.NewDatabase()
+	if err != nil {
+		log.Fatalln("chatapi.handleOnConnect: Cannot connect to database. ", err)
+		return
+	}
+	jsonMessages := models.GetLast100Messages(db, &chatroom)
+	// db connection will close here.
+
+	jsonData, err := json.Marshal(jsonMessages)
 	if err != nil {
 		log.Println("handleOnConnect: Unable to Marshal jsonMessages")
 		cAPI.unregister <- c
@@ -153,5 +165,5 @@ func (cAPI *ChatAPI) handleOnConnect(c *Client) {
 	c.send <- jsonData
 
 	// broadcast new client connection
-	cAPI.broadcastMessage(&Message{c, []byte(`{"Type":"MESSAGE","Message":"` + c.displayName + ` connected to #general.","Sender":"SYSTEM"}`)})
+	cAPI.broadcastMessage(&Message{c, []byte(`{"type":"MESSAGE","message":"` + c.displayName + ` connected to #general.","sender":"SYSTEM"}`)})
 }
