@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database/models"
 	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database"
+	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database/models"
 )
 
 // ChatAPI manages each client and their actions
@@ -22,13 +22,12 @@ type Message struct {
 	jsonmessage []byte
 }
 
-
 // Response is the data structure for server responses to the client
 // Marshall this struct when sending data back to client.
 type Response struct {
-	Type     string	`json:"type"`
-	Message  string	`json:"message"`
-	Response string	`json:"response"`
+	Type     string `json:"type"`
+	Message  string `json:"message"`
+	Response string `json:"response"`
 }
 
 // NewChatAPI creates a new app instance and returns its own pointer

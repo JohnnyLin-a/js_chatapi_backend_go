@@ -37,8 +37,8 @@ func startCLI() {
 			database.Migrate()
 		case "getlast100messages":
 			channel := "#general"
-			var db, db_err = database.NewDatabase()
-			if db_err != nil {
+			var db, dbErr = database.NewDatabase()
+			if dbErr != nil {
 				log.Fatalln("dbsetup.getlast100messages: Database connection failed.")
 			}
 			messages := models.GetLast100Messages(db, &channel)

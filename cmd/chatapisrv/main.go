@@ -151,6 +151,7 @@ func loadEnvVars() {
 	log.Println("ENABLE_WEB_CLIENT", enableWebClient)
 }
 
+// GetIP returns the http request's remote IP address
 func GetIP(r *http.Request) string {
 	forwarded := r.Header.Get("X-FORWARDED-FOR")
 	if forwarded != "" {

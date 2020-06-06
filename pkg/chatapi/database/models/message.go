@@ -3,9 +3,10 @@ package models
 import (
 	"time"
 
+	"github.com/jinzhu/gorm"
+
 	// blank import for postgres
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/jinzhu/gorm"
 )
 
 // Message struct for db
@@ -18,7 +19,6 @@ type Message struct {
 	Message   string    `json:"message"`
 }
 
-
 // SaveMessage saves a message Model to the database
 func (m *Message) SaveMessage(db *gorm.DB) {
 	if db == nil {
@@ -27,7 +27,6 @@ func (m *Message) SaveMessage(db *gorm.DB) {
 	defer func() {
 		db.Close()
 	}()
-	m.Timestamp = time.Now()
 	db.Create(m)
 }
 
@@ -40,7 +39,7 @@ func GetLast100Messages(db *gorm.DB, chatroom *string) []Message {
 	defer func() {
 		db.Close()
 	}()
-	
+
 	db.Raw("SELECT * FROM (SELECT * FROM messages WHERE chatroom = ? ORDER BY timestamp DESC LIMIT 100) AS sq ORDER BY sq.timestamp ASC;", *chatroom).Scan(&msgs)
 	return msgs
 }
