@@ -38,11 +38,21 @@ function sendMessage() {
     return false;
   }
 
-  const jsonStr = JSON.stringify({
-    type: "MESSAGE",
-    message: g.message.value,
-    sender: g.displayName,
-  });
+  let jsonStr = null;
+  if (g.message.value.startsWith("!")) {
+    jsonStr = JSON.stringify({
+      type: "_SYSCOMMAND",
+      message: g.message.value,
+      sender: g.displayName,
+    });
+  } else {
+    jsonStr = JSON.stringify({
+      type: "MESSAGE",
+      message: g.message.value,
+      sender: g.displayName,
+    });
+  }
+
   console.log("Sending ", jsonStr);
   g.conn.send(jsonStr);
   g.message.value = "";

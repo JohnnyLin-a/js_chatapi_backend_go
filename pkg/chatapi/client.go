@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -30,9 +29,9 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-var (
-	userNumber int64 = 1
-)
+// var (
+// 	userNumber int64 = 1
+// )
 
 // Client is a bridge between the websocket connection and the ChatAPI.
 type Client struct {
@@ -127,10 +126,10 @@ func HandleWebSocket(cAPI *ChatAPI, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{cAPI: cAPI, conn: conn, send: make(chan []byte, 256), displayName: "User" + strconv.FormatInt(userNumber, 10)}
+	client := &Client{cAPI: cAPI, conn: conn, send: make(chan []byte, 256), displayName: "Guest"}
 	log.Println("New user connected: ", client.displayName)
-	newUserNumber := &userNumber
-	*newUserNumber++
+	// newUserNumber := &userNumber
+	// *newUserNumber++
 	client.cAPI.register <- client
 
 	go client.startWebsocketReader()

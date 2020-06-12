@@ -78,31 +78,6 @@ func (cAPI *ChatAPI) processMessage(cMessage Message) {
 	}
 }
 
-func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
-	log.Println("Process SYSCOMMAND", string(cMessage.jsonmessage))
-
-	jsonData, err := parseGenericJSON(cMessage.jsonmessage)
-	if err != nil {
-		return
-	}
-
-	switch jsonData["message"] {
-	case "!get_display_name":
-		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!get_display_name", Response: cMessage.sender.displayName}
-		var jsonResponse, err = json.Marshal(jsonResponseStruct)
-		if err != nil {
-			log.Println("Marshal error", jsonData["message"], cMessage.sender.displayName, err)
-			return
-		}
-		cMessage.sender.send <- jsonResponse
-
-	default:
-		log.Println("Unable to process SYSCOMMAND:", jsonData["message"])
-		return
-	}
-
-}
-
 func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 	var message models.Message
 	var err = json.Unmarshal(cMessage.jsonmessage, &message)
@@ -118,7 +93,7 @@ func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 		return
 	}
 	message.SaveMessage(db)
-	// db connection will be closed here
+	db.Close()
 	// saveMessage(cMessage.jsonmessage)
 
 	for client := range cAPI.clients {
@@ -153,7 +128,7 @@ func (cAPI *ChatAPI) handleOnConnect(c *Client) {
 		return
 	}
 	jsonMessages := models.GetLast100Messages(db, &chatroom)
-	// db connection will close here.
+	db.Close()
 
 	jsonData, err := json.Marshal(jsonMessages)
 	if err != nil {

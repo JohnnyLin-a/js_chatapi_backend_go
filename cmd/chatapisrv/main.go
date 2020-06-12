@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	// "crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,13 +14,13 @@ import (
 )
 
 var (
-	enableWebClient bool             = false
-	httpHost        string           = ":80"
-	httpsHost       string           = ":443"
-	dnsAddrOrigin   string           = ""
-	cAPI            *chatapi.ChatAPI = nil
-	sslCert         string           = "fullchain.crt"
-	sslKey          string           = ""
+	enableWebClient bool   = false
+	httpHost        string = ":8080"
+	// httpsHost       string           = ":443"
+	dnsAddrOrigin string           = ""
+	cAPI          *chatapi.ChatAPI = nil
+	// sslCert         string           = "fullchain.crt"
+	// sslKey          string           = ""
 )
 
 func main() {
@@ -32,7 +31,7 @@ func main() {
 	}
 	loadEnvVars()
 
-	fmt.Println("Starting server at", httpHost, " and ", httpsHost)
+	fmt.Println("Starting server at", httpHost)
 
 	cAPI = chatapi.NewChatAPI()
 	go cAPI.Run()
@@ -83,7 +82,7 @@ func main() {
 
 	go func() {
 		// if _, err := os.Stat(sslCert); err == nil {
-		if err := http.ListenAndServe(":8080", nil); err != nil {
+		if err := http.ListenAndServe(httpHost, nil); err != nil {
 			log.Fatal("ListenAndServe: ", err)
 		}
 		// } else if os.IsNotExist(err) {
@@ -144,9 +143,9 @@ func loadEnvVars() {
 	}
 	enableWebClient = v
 	httpHost = os.Getenv("HTTP_HOST")
-	httpsHost = os.Getenv("HTTPS_HOST")
-	sslCert = os.Getenv("SSL_CERT")
-	sslKey = os.Getenv("SSL_KEY")
+	// httpsHost = os.Getenv("HTTPS_HOST")
+	// sslCert = os.Getenv("SSL_CERT")
+	// sslKey = os.Getenv("SSL_KEY")
 	dnsAddrOrigin = os.Getenv("DNS_ADDR_ORIGIN")
 	log.Println("ENABLE_WEB_CLIENT", enableWebClient)
 }
