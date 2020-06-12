@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database/models"
 	"github.com/gorilla/websocket"
 )
 
@@ -35,10 +36,10 @@ var upgrader = websocket.Upgrader{
 
 // Client is a bridge between the websocket connection and the ChatAPI.
 type Client struct {
-	cAPI        *ChatAPI
-	conn        *websocket.Conn
-	send        chan []byte
-	displayName string
+	cAPI *ChatAPI
+	conn *websocket.Conn
+	send chan []byte
+	user models.User
 }
 
 // startWebsocketReader reads socket's incoming messages to the server
@@ -126,8 +127,7 @@ func HandleWebSocket(cAPI *ChatAPI, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{cAPI: cAPI, conn: conn, send: make(chan []byte, 256), displayName: "Guest"}
-	log.Println("New user connected: ", client.displayName)
+	client := &Client{cAPI: cAPI, conn: conn, send: make(chan []byte, 256)}
 	// newUserNumber := &userNumber
 	// *newUserNumber++
 	client.cAPI.register <- client

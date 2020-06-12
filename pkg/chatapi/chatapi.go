@@ -48,7 +48,12 @@ func (cAPI *ChatAPI) Run() {
 			cAPI.clients[client] = true
 		case client := <-cAPI.unregister:
 			if _, ok := cAPI.clients[client]; ok {
-				uname := client.displayName
+				var uname string
+				if client.user.ID == 0 {
+					uname = "Guest"
+				} else {
+					uname = client.user.DisplayName
+				}
 				close(client.send)
 				delete(cAPI.clients, client)
 				cAPI.broadcastMessage(&Message{client, []byte(`{"type":"MESSAGE","message":"` + uname + ` disconnected.","sender":"SYSTEM"}`)})
@@ -100,7 +105,13 @@ func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 		select {
 		case client.send <- cMessage.jsonmessage:
 		default:
-			uname := client.displayName
+			var uname string
+			if client.user.ID == 0 {
+				uname = "Guest"
+			} else {
+				uname = client.user.DisplayName
+			}
+
 			close(client.send)
 			delete(cAPI.clients, client)
 			cAPI.broadcastMessage(&Message{client, []byte(`{"type":"MESSAGE","message":"` + uname + ` disconnected.","sender":"SYSTEM"}`)})
@@ -139,5 +150,5 @@ func (cAPI *ChatAPI) handleOnConnect(c *Client) {
 	c.send <- jsonData
 
 	// broadcast new client connection
-	cAPI.broadcastMessage(&Message{c, []byte(`{"type":"MESSAGE","message":"` + c.displayName + ` connected to #general.","sender":"SYSTEM"}`)})
+	cAPI.broadcastMessage(&Message{c, []byte(`{"type":"MESSAGE","message":"Guest connected to #general.","sender":"SYSTEM"}`)})
 }

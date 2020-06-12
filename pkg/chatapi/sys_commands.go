@@ -22,16 +22,11 @@ func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
 
 	switch messageSplit[0] {
 	case "!get_display_name":
-		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: messageSplit[0], Response: cMessage.sender.displayName}
-		var jsonResponse, err = json.Marshal(jsonResponseStruct)
-		if err != nil {
-			log.Println("Marshal error", jsonData["message"], cMessage.sender.displayName, err)
-			return
-		}
-		cMessage.sender.send <- jsonResponse
-		return
+		getDisplayName(&messageSplit, cMessage.sender)
 	case "!register":
 		register(&messageSplit, cMessage.sender)
+	case "!login":
+		login(&messageSplit, cMessage.sender)
 	default:
 		log.Println("Unable to process SYSCOMMAND:", jsonData["message"])
 		return
@@ -39,10 +34,24 @@ func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
 
 }
 
+func getDisplayName(message *[]string, sender *Client) {
+	var displayName string
+	if sender.user.ID == 0 {
+		displayName = "Guest"
+	} else {
+		displayName = (*sender).user.DisplayName
+	}
+	var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: (*message)[0], Response: displayName}
+	var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+	sender.send <- jsonResponse
+	return
+}
+
 func register(message *[]string, sender *Client) {
 	// !register email username displayName password
 	if len(*message) != 5 {
-		log.Fatalln("sys_commands.register: failed. args:", *message)
+		log.Println("sys_commands.register: failed. args count:", len(*message))
 		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!register", Response: "FAILED"}
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
@@ -69,4 +78,17 @@ func register(message *[]string, sender *Client) {
 	log.Println("!register SUCCESS")
 
 	sender.send <- jsonResponse
+}
+
+func login(message *[]string, sender *Client) {
+	if len(*message) != 3 {
+		log.Println("sys_commands.login: failed. args:", *message)
+		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "FAILED"}
+		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+		sender.send <- jsonResponse
+		return
+	}
+
+	// TODO: login logic
 }
