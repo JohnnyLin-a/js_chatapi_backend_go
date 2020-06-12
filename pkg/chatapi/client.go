@@ -39,7 +39,7 @@ type Client struct {
 	cAPI *ChatAPI
 	conn *websocket.Conn
 	send chan []byte
-	user models.User
+	user *models.User
 }
 
 // startWebsocketReader reads socket's incoming messages to the server

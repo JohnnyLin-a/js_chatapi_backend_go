@@ -49,7 +49,7 @@ func (cAPI *ChatAPI) Run() {
 		case client := <-cAPI.unregister:
 			if _, ok := cAPI.clients[client]; ok {
 				var uname string
-				if client.user.ID == 0 {
+				if client.user == nil {
 					uname = "Guest"
 				} else {
 					uname = client.user.DisplayName
@@ -106,7 +106,7 @@ func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 		case client.send <- cMessage.jsonmessage:
 		default:
 			var uname string
-			if client.user.ID == 0 {
+			if client.user == nil {
 				uname = "Guest"
 			} else {
 				uname = client.user.DisplayName

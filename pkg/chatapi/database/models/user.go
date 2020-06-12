@@ -12,14 +12,14 @@ import (
 
 // User struct for database storage
 type User struct {
-	ID          uint64    `gorm:"primary_key;auto_increment" json:"-"`
-	CreatedAt   time.Time `json:"-"`
-	DeletedAt   time.Time `json:"-"`
-	UpdatedAt   time.Time `json:"-"`
-	DisplayName string    `gorm:"size:255;not null" json:"displayName"`
-	Email       string    `gorm:"size:255;unique;not null" json:"email"`
-	Username    string    `gorm:"size:255;unique;not null" json:"username"`
-	Password    string    `gorm:"not null" json:"-"`
+	ID          uint64     `gorm:"primary_key;auto_increment" json:"-"`
+	CreatedAt   time.Time  `json:"-"`
+	DeletedAt   *time.Time `json:"-"`
+	UpdatedAt   time.Time  `json:"-"`
+	DisplayName string     `gorm:"size:255;not null" json:"displayName"`
+	Email       string     `gorm:"size:255;unique;not null" json:"email"`
+	Username    string     `gorm:"size:255;unique;not null" json:"username"`
+	Password    string     `gorm:"not null" json:"-"`
 }
 
 // Hash hashes a password string

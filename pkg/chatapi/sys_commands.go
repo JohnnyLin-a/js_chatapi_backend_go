@@ -8,6 +8,7 @@ import (
 
 	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database"
 	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database/models"
+	"github.com/badoux/checkmail"
 )
 
 func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
@@ -27,6 +28,8 @@ func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
 		register(&messageSplit, cMessage.sender)
 	case "!login":
 		login(&messageSplit, cMessage.sender)
+	case "!logout":
+		logout(cMessage.sender)
 	default:
 		log.Println("Unable to process SYSCOMMAND:", jsonData["message"])
 		return
@@ -36,7 +39,7 @@ func (cAPI *ChatAPI) processSysCommand(cMessage *Message) {
 
 func getDisplayName(message *[]string, sender *Client) {
 	var displayName string
-	if sender.user.ID == 0 {
+	if sender.user == nil {
 		displayName = "Guest"
 	} else {
 		displayName = (*sender).user.DisplayName
@@ -81,8 +84,9 @@ func register(message *[]string, sender *Client) {
 }
 
 func login(message *[]string, sender *Client) {
+	// !login email/username password
 	if len(*message) != 3 {
-		log.Println("sys_commands.login: failed. args:", *message)
+		log.Println("sys_commands.login: failed. args count:", len(*message))
 		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "FAILED"}
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
@@ -90,5 +94,75 @@ func login(message *[]string, sender *Client) {
 		return
 	}
 
-	// TODO: login logic
+	isEmail := true
+	if err := checkmail.ValidateFormat((*message)[1]); err != nil {
+		isEmail = false
+	}
+
+	var db, _ = database.NewDatabase()
+	u := models.User{}
+	if isEmail {
+		db.First(&u, "email = ?", (*message)[1])
+		log.Println("Login with email", (*message)[1])
+	} else {
+		db.First(&u, "username = ?", (*message)[1])
+		log.Println("Login with username", (*message)[1])
+	}
+	db.Close()
+	log.Println("Comparing to ", u)
+
+	if u.ID == 0 {
+		log.Println("sys_commands.login: failed. login DNE.")
+		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "FAILED"}
+		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+		sender.send <- jsonResponse
+		return
+	}
+
+	validPassword := true
+	if err := models.VerifyPassword(u.Password, (*message)[2]); err != nil {
+		validPassword = false
+	}
+	log.Println("Password valid", validPassword)
+
+	if !validPassword {
+		log.Println("sys_commands.login: failed. Password mismatch")
+		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "FAILED"}
+		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+		sender.send <- jsonResponse
+		return
+	}
+	sender.user = &u
+	log.Println("Login: success")
+	var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "SUCCESS"}
+	var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+	sender.send <- jsonResponse
+
+	jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!get_display_name", Response: u.DisplayName}
+	jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+	sender.send <- jsonResponse
+	return
+}
+
+func logout(sender *Client) {
+	if sender.user == nil {
+		log.Println("sys_commands.logout: failed. Not logged in")
+		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "FAILED"}
+		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+		sender.send <- jsonResponse
+		return
+	}
+	log.Println("Logout: ", sender.user.DisplayName)
+	sender.user = nil
+	var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "SUCCESS"}
+	var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+	sender.send <- jsonResponse
+	return
+
 }
