@@ -4,3 +4,5 @@ vendor/*
 acme-challenge/*
 certs/*
 .vscode/*
+main
+dbsetup

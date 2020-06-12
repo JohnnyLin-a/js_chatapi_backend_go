@@ -1,0 +1,68 @@
+version: '3'
+services:
+
+  im_app:
+    image: golang:alpine
+    container_name: im_app
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - ./acme-challenge/:/.well-known/acme-challenge/
+      - ./:/src/
+    #   - ./certs/:/certs/
+    networks:
+      - im-network
+
+  im_db:
+    image: postgres:12-alpine
+    container_name: im_db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "5432:5432"
+    env_file:
+      - postgres.env
+    volumes:
+      - im_db_data:/var/lib/postgresql/data
+      - ./scripts/im_app/:/scripts/
+    networks:
+      - im-network
+
+  im_nginx:
+    image: nginx:alpine
+    container_name: im_nginx
+    ports: 
+      - "80:80"
+      - "443:443"
+    volumes:
+      # - ./acme-challenge/:/.well-known/acme-challenge/
+      - ./certs/:/certs/
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - im-network
+    restart: unless-stopped
+  # pgadmin:
+  #   container_name: pgadmin
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: SOME_EMAIL
+  #     PGADMIN_DEFAULT_PASSWORD: SOME_PASSWORD
+  #   volumes:
+  #       - pgadmin:/root/.pgadmin
+  #   ports:
+  #     - "5050:80"
+  #   networks:
+  #     - im-network
+  #   restart: unless-stopped
+
+#Docker Networks
+networks:
+  im-network:
+    driver: bridge
+
+volumes:
+  im_db_data:
+    driver: local
+  # pgadmin:
+  #   driver: local
+    
