@@ -3,3 +3,4 @@
 vendor/*
 acme-challenge/*
 certs/*
+.vscode/*
