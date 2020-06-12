@@ -9,6 +9,7 @@ import (
 
 	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database"
 	"github.com/JohnnyLin-a/js_chatapi_backend_go/pkg/chatapi/database/models"
+	"github.com/jinzhu/gorm"
 	"github.com/joho/godotenv"
 )
 
@@ -45,6 +46,21 @@ func startCLI() {
 			for i, message := range messages {
 				log.Println(i, message.Timestamp, message.Message)
 			}
+		case "users":
+			var err error
+			db, _ := database.NewDatabase()
+			users := []models.User{}
+			err = db.Model(&models.User{}).Limit(100).Find(&users).Error
+			if gorm.IsRecordNotFoundError(err) {
+				log.Println("Error: gorm.IsRecordNotFoundError(err)", err)
+			} else {
+				// print/log/return error
+				log.Println("Error:", err)
+			}
+			if err != nil {
+				log.Println("Error:", err)
+			}
+			log.Println("100 users", users)
 		case "exit", "quit":
 			os.Exit(0)
 		default:
