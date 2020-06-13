@@ -2,6 +2,7 @@ package chatapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -136,4 +137,10 @@ func HandleWebSocket(cAPI *ChatAPI, w http.ResponseWriter, r *http.Request) {
 	go client.startWebsocketWriter()
 	// send to #general
 	go cAPI.handleOnConnect(client)
+}
+
+// SendSysMessage sends a system message to the client
+func (c *Client) SendSysMessage(msg string) {
+	jsonmessage, _ := json.Marshal(Response{Message: msg, Type: "_SYSMESSAGE"})
+	c.send <- jsonmessage
 }

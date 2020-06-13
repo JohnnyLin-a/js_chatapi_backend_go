@@ -52,6 +52,7 @@ func getDisplayName(message *[]string, sender *Client) {
 }
 
 func register(message *[]string, sender *Client) {
+	// TODO: Redo this with json {body: {"field1":"x",...}}
 	// !register email username displayName password
 	if len(*message) != 5 {
 		log.Println("sys_commands.register: failed. args count:", len(*message))
@@ -59,6 +60,8 @@ func register(message *[]string, sender *Client) {
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
 		sender.send <- jsonResponse
+
+		sender.SendSysMessage("Register failed. Must be !register email username display_name password")
 		return
 	}
 
@@ -71,6 +74,7 @@ func register(message *[]string, sender *Client) {
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
 		sender.send <- jsonResponse
+		sender.SendSysMessage("Register failed. Perhaps username/email already exists.")
 		return
 	}
 	db.Close()
@@ -81,9 +85,12 @@ func register(message *[]string, sender *Client) {
 	log.Println("!register SUCCESS")
 
 	sender.send <- jsonResponse
+
+	sender.SendSysMessage("Register success. You can now proceed to !login")
 }
 
 func login(message *[]string, sender *Client) {
+	// TODO: Redo this with json {body: {"field1":"x",...}}
 	// !login email/username password
 	if len(*message) != 3 {
 		log.Println("sys_commands.login: failed. args count:", len(*message))
@@ -91,6 +98,8 @@ func login(message *[]string, sender *Client) {
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
 		sender.send <- jsonResponse
+
+		sender.SendSysMessage("Login not in the form of !login email/username password")
 		return
 	}
 
@@ -116,6 +125,7 @@ func login(message *[]string, sender *Client) {
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
 		sender.send <- jsonResponse
+		sender.SendSysMessage("Login failed. Wrong email/username or password.")
 		return
 	}
 
@@ -131,6 +141,7 @@ func login(message *[]string, sender *Client) {
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
 		sender.send <- jsonResponse
+		sender.SendSysMessage("Login failed. Wrong email/username or password.")
 		return
 	}
 	sender.user = &u
@@ -139,6 +150,8 @@ func login(message *[]string, sender *Client) {
 	var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
 	sender.send <- jsonResponse
+
+	sender.SendSysMessage("Login successful.")
 
 	jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!get_display_name", Response: u.DisplayName}
 	jsonResponse, _ = json.Marshal(jsonResponseStruct)
@@ -150,7 +163,7 @@ func login(message *[]string, sender *Client) {
 func logout(sender *Client) {
 	if sender.user == nil {
 		log.Println("sys_commands.logout: failed. Not logged in")
-		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "FAILED"}
+		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!logout", Response: "FAILED"}
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
 		sender.send <- jsonResponse
@@ -158,8 +171,15 @@ func logout(sender *Client) {
 	}
 	log.Println("Logout: ", sender.user.DisplayName)
 	sender.user = nil
-	var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "SUCCESS"}
+	var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!logout", Response: "SUCCESS"}
 	var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+	sender.send <- jsonResponse
+
+	sender.SendSysMessage("Logout successful")
+
+	jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!get_display_name", Response: "Guest"}
+	jsonResponse, _ = json.Marshal(jsonResponseStruct)
 
 	sender.send <- jsonResponse
 	return

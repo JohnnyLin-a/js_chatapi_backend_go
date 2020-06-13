@@ -43,13 +43,11 @@ function sendMessage() {
     jsonStr = JSON.stringify({
       type: "_SYSCOMMAND",
       message: g.message.value,
-      sender: g.displayName,
     });
   } else {
     jsonStr = JSON.stringify({
       type: "MESSAGE",
       message: g.message.value,
-      sender: g.displayName,
     });
   }
 
@@ -71,7 +69,7 @@ function makeWebSocket() {
   g.conn.onmessage = function (evt) {
     var messages = evt.data.split("\n");
     for (var i = 0; i < messages.length; i++) {
-      console.log("Received message " + messages[i], JSON.parse(messages[i]));
+      console.log("Received message ", JSON.parse(messages[i]));
       handleIncomingMessage(messages[i]);
     }
   };
@@ -85,7 +83,6 @@ function makeWebSocket() {
       JSON.stringify({
         type: "_SYSCOMMAND",
         message: "!get_display_name",
-        sender: g.displayName,
       })
     );
   };
@@ -106,6 +103,9 @@ const handleIncomingMessage = (message) => {
         break;
       case "MESSAGE":
         pushChatLog(json);
+        break;
+      case "_SYSMESSAGE":
+        pushChatLog({sender: "SYSTEM", message: json.message});
         break;
       default:
         console.log("Incoming message type mismatch");

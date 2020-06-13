@@ -14,6 +14,7 @@ type ChatAPI struct {
 	messageProcessor chan Message
 	register         chan *Client
 	unregister       chan *Client
+	// rooms            map[string][]*Client
 }
 
 // Message is the data structure for incoming messages to the API
@@ -48,15 +49,8 @@ func (cAPI *ChatAPI) Run() {
 			cAPI.clients[client] = true
 		case client := <-cAPI.unregister:
 			if _, ok := cAPI.clients[client]; ok {
-				var uname string
-				if client.user == nil {
-					uname = "Guest"
-				} else {
-					uname = client.user.DisplayName
-				}
 				close(client.send)
 				delete(cAPI.clients, client)
-				cAPI.broadcastMessage(&Message{client, []byte(`{"type":"MESSAGE","message":"` + uname + ` disconnected.","sender":"SYSTEM"}`)})
 			}
 		case cMessage := <-cAPI.messageProcessor:
 			go cAPI.processMessage(cMessage)
@@ -90,6 +84,12 @@ func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 		log.Fatalln("BROADCAST: Cannot parse " + string(cMessage.jsonmessage))
 		return
 	}
+
+	if cMessage.sender.user != nil {
+		message.Sender = cMessage.sender.user.DisplayName
+	} else {
+		message.Sender = "Guest"
+	}
 	log.Println("#general " + message.Sender + ": " + message.Message)
 
 	var db, dbErr = database.NewDatabase()
@@ -101,20 +101,14 @@ func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 	db.Close()
 	// saveMessage(cMessage.jsonmessage)
 
+	jsonmessage, _ := json.Marshal(message)
+
 	for client := range cAPI.clients {
 		select {
-		case client.send <- cMessage.jsonmessage:
+		case client.send <- jsonmessage:
 		default:
-			var uname string
-			if client.user == nil {
-				uname = "Guest"
-			} else {
-				uname = client.user.DisplayName
-			}
-
 			close(client.send)
 			delete(cAPI.clients, client)
-			cAPI.broadcastMessage(&Message{client, []byte(`{"type":"MESSAGE","message":"` + uname + ` disconnected.","sender":"SYSTEM"}`)})
 
 		}
 	}
@@ -149,6 +143,5 @@ func (cAPI *ChatAPI) handleOnConnect(c *Client) {
 	}
 	c.send <- jsonData
 
-	// broadcast new client connection
-	cAPI.broadcastMessage(&Message{c, []byte(`{"type":"MESSAGE","message":"Guest connected to #general.","sender":"SYSTEM"}`)})
+	c.SendSysMessage("You connected to #general.")
 }
