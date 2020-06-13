@@ -109,7 +109,6 @@ func login(message *[]string, sender *Client) {
 		log.Println("Login with username", (*message)[1])
 	}
 	db.Close()
-	log.Println("Comparing to ", u)
 
 	if u.ID == 0 {
 		log.Println("sys_commands.login: failed. login DNE.")
