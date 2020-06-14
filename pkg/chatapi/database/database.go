@@ -42,5 +42,5 @@ func Migrate() {
 
 	// Only migrate Message Modal for now
 	log.Println("AutoMigrating...")
-	db.AutoMigrate(&models.Message{}, &models.User{})
+	db.AutoMigrate(&models.Message{}, &models.User{}, &models.Chatroom{})
 }

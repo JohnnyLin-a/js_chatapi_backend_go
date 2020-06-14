@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -11,28 +12,28 @@ import (
 
 // Message struct for db
 type Message struct {
-	ID        string    `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
-	Chatroom  string    `gorm:"default:'#general'" json:"chatroom"`
-	Timestamp time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"timestamp"`
-	Sender    string    `gorm:"not null" json:"sender"`
-	Type      string    `gorm:"not null" json:"type"`
-	Message   string    `gorm:"not null" json:"message"`
+	ID         string    `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
+	ChatroomID string    `gorm:"foreignkey:ChatroomRefer" json:"chatroomID"`
+	UserID     uint64    `gorm:"foreignkey:UserRefer" json:"userID"`
+	Timestamp  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"timestamp"`
+	Type       string    `gorm:"not null" json:"type"`
+	Message    string    `gorm:"not null" json:"message"`
 }
 
-// SaveMessage saves a message Model to the database
-func (m *Message) SaveMessage(db *gorm.DB) {
+// Save saves a message Model to the database
+func (m *Message) Save(db *gorm.DB) error {
 	if db == nil {
-		return
+		return errors.New("No DB connection")
 	}
-	db.Create(m)
+	return db.Create(m).Error
 }
 
 // GetLast100Messages gets last 10 messages for a chatroom
-func GetLast100Messages(db *gorm.DB, chatroom *string) []Message {
+func GetLast100Messages(db *gorm.DB, chatroom *string) (*[]Message, error) {
 	var msgs []Message
 	if db == nil {
-		return msgs
+		return nil, errors.New("No DB connection")
 	}
-	db.Raw("SELECT * FROM (SELECT * FROM messages WHERE chatroom = ? ORDER BY timestamp DESC LIMIT 100) AS sq ORDER BY sq.timestamp ASC;", *chatroom).Scan(&msgs)
-	return msgs
+
+	return &msgs, db.Raw("SELECT * FROM (SELECT * FROM messages WHERE chatroom_id = ? ORDER BY timestamp DESC LIMIT 100) AS sq ORDER BY sq.timestamp ASC;", *chatroom).Scan(&msgs).Error
 }

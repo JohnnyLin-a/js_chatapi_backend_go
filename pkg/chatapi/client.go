@@ -78,7 +78,7 @@ func (c *Client) startWebsocketReader() {
 
 // startWebsocketWriter sends messages from the chatAPI to the connected websocket.
 func (c *Client) startWebsocketWriter() {
-	// Write to client's html page
+	// Write to client's socket
 	interval := time.NewTicker(pingInterval)
 
 	defer func() {
@@ -129,13 +129,12 @@ func HandleWebSocket(cAPI *ChatAPI, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := &Client{cAPI: cAPI, conn: conn, send: make(chan []byte, 256)}
-	// newUserNumber := &userNumber
-	// *newUserNumber++
+
 	client.cAPI.register <- client
 
 	go client.startWebsocketReader()
 	go client.startWebsocketWriter()
-	// send to #general
+
 	go cAPI.handleOnConnect(client)
 }
 
@@ -143,4 +142,33 @@ func HandleWebSocket(cAPI *ChatAPI, w http.ResponseWriter, r *http.Request) {
 func (c *Client) SendSysMessage(msg string) {
 	jsonmessage, _ := json.Marshal(Response{Message: msg, Type: "_SYSMESSAGE"})
 	c.send <- jsonmessage
+}
+
+// Unregister removes current client from chatAPI
+func (c *Client) Unregister(closeChannel bool) {
+	var id uint64 = 0
+	if c.user != nil {
+		id = c.user.ID
+	}
+	if _, ok := c.cAPI.users[id]; ok {
+		if closeChannel {
+			close(c.send)
+		}
+		delete(c.cAPI.users[id], c)
+		if len(c.cAPI.users[id]) == 0 {
+			delete(c.cAPI.users, id)
+		}
+	}
+}
+
+// Register adds current client connection to chatAPI
+func (c *Client) Register() {
+	var id uint64 = 0
+	if c.user != nil {
+		id = c.user.ID
+	}
+	if _, ok := c.cAPI.users[id]; !ok {
+		c.cAPI.users[id] = make(map[*Client]bool)
+	}
+	c.cAPI.users[id][c] = true
 }

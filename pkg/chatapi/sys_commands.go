@@ -68,7 +68,7 @@ func register(message *[]string, sender *Client) {
 	var db, _ = database.NewDatabase()
 	var hashedPassword, _ = models.Hash((*message)[4])
 	var u = models.User{CreatedAt: time.Now(), UpdatedAt: time.Now(), Email: (*message)[1], Username: (*message)[2], DisplayName: (*message)[3], Password: string(hashedPassword)}
-	var _, err = u.SaveUser(db)
+	var _, err = u.Save(db)
 	if err != nil {
 		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!register", Response: "FAILED"}
 		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
@@ -92,6 +92,20 @@ func register(message *[]string, sender *Client) {
 func login(message *[]string, sender *Client) {
 	// TODO: Redo this with json {body: {"field1":"x",...}}
 	// !login email/username password
+
+	// Check if already logged in
+	if sender.user != nil {
+		log.Println("sys_commands.login: failed. Already logged in")
+		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "FAILED"}
+		var jsonResponse, _ = json.Marshal(jsonResponseStruct)
+
+		sender.send <- jsonResponse
+
+		sender.SendSysMessage("You are already logged in")
+		return
+	}
+
+	// Check args
 	if len(*message) != 3 {
 		log.Println("sys_commands.login: failed. args count:", len(*message))
 		var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "FAILED"}
@@ -103,19 +117,19 @@ func login(message *[]string, sender *Client) {
 		return
 	}
 
+	// Check login with email or username
 	isEmail := true
 	if err := checkmail.ValidateFormat((*message)[1]); err != nil {
 		isEmail = false
 	}
 
+	// Get corresponding User model
 	var db, _ = database.NewDatabase()
 	u := models.User{}
 	if isEmail {
 		db.First(&u, "email = ?", (*message)[1])
-		log.Println("Login with email", (*message)[1])
 	} else {
 		db.First(&u, "username = ?", (*message)[1])
-		log.Println("Login with username", (*message)[1])
 	}
 	db.Close()
 
@@ -129,6 +143,7 @@ func login(message *[]string, sender *Client) {
 		return
 	}
 
+	// Validate password
 	validPassword := true
 	if err := models.VerifyPassword(u.Password, (*message)[2]); err != nil {
 		validPassword = false
@@ -144,7 +159,13 @@ func login(message *[]string, sender *Client) {
 		sender.SendSysMessage("Login failed. Wrong email/username or password.")
 		return
 	}
+
+	// login
 	sender.user = &u
+
+	delete(sender.cAPI.users[0], sender)
+	sender.Register()
+
 	log.Println("Login: success")
 	var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!login", Response: "SUCCESS"}
 	var jsonResponse, _ = json.Marshal(jsonResponseStruct)
@@ -170,7 +191,11 @@ func logout(sender *Client) {
 		return
 	}
 	log.Println("Logout: ", sender.user.DisplayName)
+
+	sender.Unregister(false)
 	sender.user = nil
+	sender.Register()
+
 	var jsonResponseStruct = Response{Type: "_SYSCOMMAND", Message: "!logout", Response: "SUCCESS"}
 	var jsonResponse, _ = json.Marshal(jsonResponseStruct)
 

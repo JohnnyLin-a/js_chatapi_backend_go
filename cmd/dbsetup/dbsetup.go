@@ -42,8 +42,8 @@ func startCLI() {
 			if dbErr != nil {
 				log.Fatalln("dbsetup.getlast100messages: Database connection failed.")
 			}
-			messages := models.GetLast100Messages(db, &channel)
-			for i, message := range messages {
+			messages, _ := models.GetLast100Messages(db, &channel)
+			for i, message := range *messages {
 				log.Println(i, message.Timestamp, message.Message)
 			}
 		case "users":

@@ -6,9 +6,9 @@ function pushChatLog(jsonMessage) {
   if (g.chatLog.scrollHeight - g.chatLog.scrollTop === g.chatLog.clientHeight) {
     needScroll = true;
   }
-  if (jsonMessage.sender === g.displayName) {
-    needScroll = true;
-  }
+  // if (jsonMessage.sender === g.displayName) {
+  //   needScroll = true;
+  // }
 
   var item = document.createElement("div");
 

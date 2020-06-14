@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -43,8 +44,8 @@ func (u *User) DeleteUser(db *gorm.DB) {
 	db.Delete(u)
 }
 
-// SaveUser saves a new user
-func (u *User) SaveUser(db *gorm.DB) (*User, error) {
+// Save saves a new user
+func (u *User) Save(db *gorm.DB) (*User, error) {
 	if err := db.Create(&u).Error; err != nil {
 		return &User{}, err
 	}
@@ -58,4 +59,14 @@ func FindUserByID(db *gorm.DB, id uint64) (*User, error) {
 		return &User{}, err
 	}
 	return &u, nil
+}
+
+// Chatrooms will get the user's chatrooms
+func (u *User) Chatrooms(db *gorm.DB) (*[]Chatroom, error) {
+	if u.ID == 0 {
+		return nil, errors.New("User not logged in")
+	}
+	var chatrooms []Chatroom
+
+	return &chatrooms, db.Where("user_id = ?", u.ID).Find(&chatrooms).Error
 }

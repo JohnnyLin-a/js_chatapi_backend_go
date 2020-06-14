@@ -121,8 +121,10 @@ func startCLI(enabled *bool) {
 			input = strings.TrimSuffix(strings.TrimSuffix(input, "\n"), "\r")
 
 			switch input {
-			case "msg":
+			case "test":
 				fmt.Println("test success")
+			case "clients":
+				fmt.Println(cAPI.Connections())
 			case "exit", "quit":
 				*enabled = false
 			default:

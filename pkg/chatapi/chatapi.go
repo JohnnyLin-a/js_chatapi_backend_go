@@ -10,11 +10,10 @@ import (
 
 // ChatAPI manages each client and their actions
 type ChatAPI struct {
-	clients          map[*Client]bool
 	messageProcessor chan Message
 	register         chan *Client
 	unregister       chan *Client
-	// rooms            map[string][]*Client
+	users            map[uint64]map[*Client]bool
 }
 
 // Message is the data structure for incoming messages to the API
@@ -37,7 +36,7 @@ func NewChatAPI() *ChatAPI {
 		messageProcessor: make(chan Message),
 		register:         make(chan *Client),
 		unregister:       make(chan *Client),
-		clients:          make(map[*Client]bool),
+		users:            make(map[uint64]map[*Client]bool),
 	}
 }
 
@@ -46,12 +45,9 @@ func (cAPI *ChatAPI) Run() {
 	for {
 		select {
 		case client := <-cAPI.register:
-			cAPI.clients[client] = true
+			client.Register()
 		case client := <-cAPI.unregister:
-			if _, ok := cAPI.clients[client]; ok {
-				close(client.send)
-				delete(cAPI.clients, client)
-			}
+			client.Unregister(true)
 		case cMessage := <-cAPI.messageProcessor:
 			go cAPI.processMessage(cMessage)
 		}
@@ -86,30 +82,32 @@ func (cAPI *ChatAPI) broadcastMessage(cMessage *Message) {
 	}
 
 	if cMessage.sender.user != nil {
-		message.Sender = cMessage.sender.user.DisplayName
+		message.UserID = cMessage.sender.user.ID
+		log.Println("#general " + cMessage.sender.user.DisplayName + ": " + message.Message)
 	} else {
-		message.Sender = "Guest"
+		message.UserID = 0
+		log.Println("#general Guest: " + message.Message)
 	}
-	log.Println("#general " + message.Sender + ": " + message.Message)
+	
 
 	var db, dbErr = database.NewDatabase()
 	if dbErr != nil {
 		log.Fatalln("chatapi.broadcastMessage: Database connection failed.")
 		return
 	}
-	message.SaveMessage(db)
+	message.Save(db)
 	db.Close()
 	// saveMessage(cMessage.jsonmessage)
 
 	jsonmessage, _ := json.Marshal(message)
 
-	for client := range cAPI.clients {
-		select {
-		case client.send <- jsonmessage:
-		default:
-			close(client.send)
-			delete(cAPI.clients, client)
-
+	for _, clientsMap := range cAPI.users {
+		for client := range clientsMap {
+			select {
+			case client.send <- jsonmessage:
+			default:
+				client.Unregister(true)
+			}
 		}
 	}
 }
@@ -125,14 +123,14 @@ func parseGenericJSON(message []byte) (map[string]interface{}, error) {
 }
 
 func (cAPI *ChatAPI) handleOnConnect(c *Client) {
-	var chatroom string = "#general"
+	var chatroom string = ""
 	//get last 100 msgs
 	var db, err = database.NewDatabase()
 	if err != nil {
 		log.Fatalln("chatapi.handleOnConnect: Cannot connect to database. ", err)
 		return
 	}
-	jsonMessages := models.GetLast100Messages(db, &chatroom)
+	jsonMessages, _ := models.GetLast100Messages(db, &chatroom)
 	db.Close()
 
 	jsonData, err := json.Marshal(jsonMessages)
@@ -143,5 +141,10 @@ func (cAPI *ChatAPI) handleOnConnect(c *Client) {
 	}
 	c.send <- jsonData
 
-	c.SendSysMessage("You connected to #general.")
+	c.SendSysMessage("You are connected to #general.")
+}
+
+// Connections gets all connections from the ChatAPi
+func (cAPI *ChatAPI) Connections() map[uint64]map[*Client]bool {
+	return cAPI.users
 }
